@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
@@ -23,12 +24,8 @@ namespace OOXML.Validator
 
         public async Task<object> Invoke(object input)
         {
-            //dynamic data = JsonSerializer.Deserialize<Dictionary<string, string>>(input.ToString());
             string fileName = JsonDocument.Parse(input.ToString()).RootElement.GetProperty("fileName").ToString();
             string formatString = JsonDocument.Parse(input.ToString()).RootElement.GetProperty("format").ToString();
-            //dynamic data = JToken.Parse(input.ToString());
-            //string formatString = data.formatString;
-            //string fileName = data.fileName;
             bool validInt = int.TryParse(formatString, out int format);
             int defaultFormatVersion = Enum.GetNames(typeof(FormatVersion)).Length - 1;
             if (format < 0 || format > defaultFormatVersion)
@@ -64,7 +61,6 @@ namespace OOXML.Validator
                 default:
                     break;
             }
-            //return await Task.FromResult(".NET Welcomes " + formatString);
             dynamic ffv;
             int num = validInt && format > 0 && format <= defaultFormatVersion ? format : defaultFormatVersion;
             FormatVersion fv = (FormatVersion)num;
@@ -91,8 +87,10 @@ namespace OOXML.Validator
             }
             OpenXmlValidator openXmlValidator = new OpenXmlValidator(ffv);
             IEnumerable<ValidationErrorInfo> validationErrorInfos = openXmlValidator.Validate(doc);
-            return await Task.FromResult(validationErrorInfos);
-            //return await Task.FromResult("returning a string");
+            return await Task.FromResult(JsonSerializer.Serialize(validationErrorInfos, new JsonSerializerOptions()
+            {
+                ReferenceHandler = ReferenceHandler.Preserve
+            }));
         }
     }
 }
